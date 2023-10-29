@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:utm_app/pop_up_menu.dart'; // Импортируйте ваш новый виджет меню
+import 'package:utm_app/pop_up_menu.dart';
 import 'package:utm_app/category.dart';
 import 'package:utm_app/products.dart';
+import 'package:utm_app/wish_list.dart';
+import 'package:provider/provider.dart';
+import 'package:utm_app/product.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => WishlistProvider(),
+      child: const MyApp(),
+    ),
+  );
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
-
 }
 
 class MyApp extends StatelessWidget {
@@ -15,7 +22,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return MaterialApp(
       theme: ThemeData(
         primarySwatch: Colors.blue,
@@ -28,281 +34,410 @@ class MyApp extends StatelessWidget {
 class MyHomePage extends StatefulWidget {
   const MyHomePage({Key? key, required this.title}) : super(key: key);
   final String title;
+
   @override
   State<MyHomePage> createState() => _MyHomePageState();
-
 }
-
-final buttonStyle = ElevatedButton.styleFrom(
-  foregroundColor: Colors.white,
-  backgroundColor: Colors.blue, // background color
-  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-);
 
 class _MyHomePageState extends State<MyHomePage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey();
   late Future<List<Category>> futureCategories;
+  String? selectedCategory; // Добавлено для фильтрации
+  bool isHorizontalList = true;
+  void _toggleListView() {
+    setState(() {
+      isHorizontalList = !isHorizontalList;
+    });
+  }
+  final TextEditingController _searchController = TextEditingController();
+  String _searchText = "";
+
+  @override
+  void initState() {
+    super.initState();
+    futureCategories = fetchCategories();
+    isHorizontalList = true;
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();  // Не забудьте освободить ресурсы контроллера
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    setState(() {
+      _searchText = _searchController.text;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    futureCategories = fetchCategories();
+    var wishlistProvider = Provider.of<WishlistProvider>(context);
+
     return Scaffold(
       key: _scaffoldKey,
       drawer: const Drawer(
         child: PopUpMenu(),
       ),
-      body: SafeArea(  // Добавлено для учета выступов экрана, например, выреза.
-      child: Padding(
+      body: SafeArea(
+        child: Padding(
           padding: const EdgeInsets.only(top: 20.0),
-        child: Column(
-          children: <Widget>[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                RawMaterialButton(
-                  onPressed: () {
-                    _scaffoldKey.currentState?.openDrawer();
-                  },
-                  elevation: 2.0,
-                  fillColor: Colors.grey[200],
-                  padding: const EdgeInsets.all(15.0),
-                  shape: const CircleBorder(),
-                  child: const Icon(
-                    Icons.list,
-                    size: 30.0,
+          child: Column(
+            children: <Widget>[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  RawMaterialButton(
+                    onPressed: () {
+                      _scaffoldKey.currentState?.openDrawer();
+                    },
+                    elevation: 2.0,
+                    fillColor: Colors.grey[200],
+                    padding: const EdgeInsets.all(15.0),
+                    shape: const CircleBorder(),
+                    child: const Icon(
+                      Icons.list,
+                      size: 30.0,
+                    ),
+                  ),
+                  RawMaterialButton(
+                    onPressed: () {
+                    },
+                    elevation: 2.0,
+                    fillColor: Colors.grey[200],
+                    padding: const EdgeInsets.all(15.0),
+                    shape: const CircleBorder(),
+                    child: const Icon(
+                      Icons.shopping_cart,
+                      size: 30.0,
+                    ),
+                  ),
+                ],
+              ),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        "Hello",
+                        style: TextStyle(
+                          fontSize: 50,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        "Welcome to UTM Shop",
+                        style: TextStyle(
+                          fontSize: 20,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                RawMaterialButton(
-                  onPressed: () {
-                    // Обработчик события при нажатии на правую кнопку
-                  },
-                  elevation: 2.0,
-                  fillColor: Colors.grey[200],
-                  padding: const EdgeInsets.all(15.0),
-                  shape: const CircleBorder(),
-                  child: const Icon(
-                    Icons.shopping_cart,
-                    size: 30.0,
-                  ),
-                ),
-              ],
-            ),
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
                   children: <Widget>[
-                    Text(
-                      "Hello",
-                      style: TextStyle(
-                        fontSize: 50,
-                        fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Search...',
+                          prefixIcon: const Icon(Icons.search),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                          ),
+                        ),
                       ),
                     ),
-                    Text(
-                      "Welcome to UTM Shop",
-                      style: TextStyle(
-                        fontSize: 20,
-                        color: Colors.grey,
+                    const SizedBox(width: 10),
+                    ElevatedButton(
+                      onPressed: () {
+                        // Action for microphone
+                      },
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        backgroundColor: Colors.blue,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                        elevation: 5,
+                      ),
+                      child: const Icon(Icons.mic),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: <Widget>[
+                    const Text(
+                      'Choose Category',
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                    GestureDetector(
+                      onTap: _toggleListView,
+                      child: Text(
+                        isHorizontalList ? 'View all' : 'Show less',
+                        style: const TextStyle(fontSize: 18, color: Colors.blue),
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
-            Padding(  // Внешний отступ для строки поиска
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                children: <Widget>[
-                  Expanded(
-                    child: TextField(
-                      decoration: InputDecoration(
-                        hintText: 'Search...',
-                        prefixIcon: const Icon(Icons.search),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.0),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  ElevatedButton(
-                    onPressed: () {
-                      // Действие для микрофона
-                    },
-                    style: ElevatedButton.styleFrom(
-                      foregroundColor: Colors.white, backgroundColor: Colors.blue, // цвет содержимого кнопки
-                      shape: RoundedRectangleBorder( // создает прямоугольник с закругленными углами
-                        borderRadius: BorderRadius.circular(10), // радиус закругления углов
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20), // отступы внутри кнопки
-                      elevation: 5, // тень под кнопкой
-                    ),
-                    child: const Icon(Icons.mic), // иконка микрофона
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: <Widget>[
-                  const Text(
-                    'Chose Category',
-                    style: TextStyle(fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      print("View all pased");
-                    },
-                    child: const Text(
-                      'View all',
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // ... ваш предыдущий код ...
-
-            SizedBox(
-              height: 80,
-              child: FutureBuilder<List<Category>>(
-                future: futureCategories, // используйте переменную future, которую вы определили ранее
+              FutureBuilder<List<Category>>(
+                future: futureCategories,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   } else if (snapshot.hasError) {
-                    return Center(child: Text('Ошибка: ${snapshot.error}'));
+                    return Center(child: Text('Error: ${snapshot.error}'));
                   } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Center(child: Text('Нет данных'));
+                    return const Center(child: Text('No data !'));
                   } else {
-                    return ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: snapshot.data!.length,
-                      itemBuilder: (context, index) {
-                        var category = snapshot.data![index];
-                        return SizedBox(
-                          width: 200, // или необходимая ширина
-                          child: ListTile(
-                            title: Text(category.title, overflow: TextOverflow.ellipsis),  // использовать overflow для длинных текстов
-                            leading: SizedBox(
-                              width: 50,  // это предотвращает ошибку, о которой мы говорили
-                              height: 50,
-                              child: Image.network(
-                                category.image,
-                                fit: BoxFit.cover,
-                                loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
-                                  if (loadingProgress == null) return child;
-                                  return Center(
-                                    child: CircularProgressIndicator(
-                                      value: loadingProgress.expectedTotalBytes != null
-                                          ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                                          : null,
-                                    ),
-                                  );
+                    if (isHorizontalList) {
+                      return SizedBox(
+                        height: 80, // Высота, подходящая для горизонтального списка
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: snapshot.data!.length,
+                          itemBuilder: (context, index) {
+                            var category = snapshot.data![index];
+                            return Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  foregroundColor: Colors.black, backgroundColor: Colors.white,
+                                  elevation: 5, // Тень кнопки
+                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    selectedCategory = category.title;
+                                  });
                                 },
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Image.network(
+                                      category.image,
+                                      width: 40,
+                                      height: 30,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return Image.network(
+                                          'https://cdn-icons-png.flaticon.com/512/2603/2603910.png',
+                                          width: 40,
+                                          height: 30,
+                                          fit: BoxFit.cover,
+                                        );
+                                      },
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      category.title,
+                                      style: const TextStyle(fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    } else {
+                      return Expanded(
+                        child: ListView.builder(
+                          itemCount: snapshot.data!.length,
+                          itemBuilder: (context, index) {
+                            var category = snapshot.data![index];
+                            return ListTile(
+                              onTap: () {
+                                setState(() {
+                                  selectedCategory = category.title;
+                                });
+                              },
+                              leading: Image.network(
+                                category.image,
+                                width: 40,
+                                height: 30,
+                                fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) {
-                                  // Здесь мы используем другой URL для изображения, которое должно быть показано в случае ошибки
                                   return Image.network(
-                                    'https://imgtr.ee/images/2023/10/05/4a6340905a491959c13d707d31114eac.png',  // Укажите URL вашего альтернативного изображения
+                                    'https://cdn-icons-png.flaticon.com/512/2603/2603910.png',
+                                    width: 40,
+                                    height: 30,
                                     fit: BoxFit.cover,
                                   );
                                 },
                               ),
-                            ),
-                            onTap: () {
-                              // Ваш обработчик нажатий здесь
-                            },
-                          ),
-                        );
-                      },
-                    );
+                              title: Text(category.title),
+                            );
+                          },
+                        ),
+                      );
+                    }
                   }
                 },
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: <Widget>[
-                  const Text(
-                    'All Products',
-                    style: TextStyle(fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      print("View all products");
-                    },
-                    child: const Text(
-                      'View all',
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: <Widget>[
+                    const Text(
+                      'All Products',
                       style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.grey,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),Expanded(  // Оберните ваш GridView в Expanded
-              child: FutureBuilder<List<Products>>(
-                future: fetchProducts(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  } else if (snapshot.hasError) {
-                    return Center(child: Text('Ошибка: ${snapshot.error}'));
-                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Center(child: Text('Нет данных'));
-                  } else {
-                    return GridView.builder(
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2, // Два элемента в ряду
-                        childAspectRatio: MediaQuery.of(context).size.width /
-                            (MediaQuery.of(context).size.height / 1.2), // Высота каждого элемента
-                      ),
-                      itemCount: snapshot.data!.length,
-                      itemBuilder: (context, index) {
-                        var product = snapshot.data![index];
-                        return Card(
-                          child: Column(
-                            children: <Widget>[
-                              SizedBox(  // Используйте Container или SizedBox для контроля размера изображения
-                                height: 200, // желаемая высота
-                                width: double.infinity, // занимает всю ширину карточки
-                                child: Image.network(
-                                  product.image,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                              const SizedBox(height: 8),  // Отступ между изображением и текстом
-                              Text(product.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                              Text(product.categoryTitle, style: const TextStyle(color: Colors.grey)),
-                              Text('\$${product.price}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        );
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          selectedCategory = null;
+                        });
+                       // print("View all products");
                       },
-                    );
-                  }
-                },
+                      child: const Text(
+                        'View all',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            )
-          ],
+              Expanded(
+                child: FutureBuilder<List<Products>>(
+                  future: fetchProducts(category: selectedCategory),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return Center(child: Text('Ошибка: ${snapshot.error}'));
+                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return const Center(child: Text('Нет данных'));
+                    } else {
+                      // Фильтрация продуктов по тексту поиска
+                      String searchQuery = _searchController.text.trim().toLowerCase();  // текст запроса в нижнем регистре для упрощения сравнения
+                      List<Products> products = snapshot.data!;  // список всех продуктов
+                      List<Products> filteredProducts = products.where((product) {
+                        return product.title.toLowerCase().contains(searchQuery);  // фильтрация по названию продукта
+                      }).toList();
+
+                      // Если запрос поиска пустой, показываем все продукты
+                      if (searchQuery.isEmpty) {
+                        filteredProducts = products;
+                      }
+                      return GridView.builder(
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: MediaQuery.of(context).size.width /
+                              (MediaQuery.of(context).size.height / 1.2),
+                        ),
+                        itemCount: filteredProducts.length,
+                        itemBuilder: (context, index) {
+                          var product = filteredProducts[index];
+
+                          bool isInWishlist = wishlistProvider.isInWishlist(product.id);
+                          return GestureDetector(
+                              onTap: () {
+                            // Переход на страницу деталей продукта
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ProductDetailsPage(product: product),  // Передача продукта на новую страницу
+                              ),
+                            );
+                          },
+                            child: Card(
+                              child: Stack(
+                                alignment: Alignment.topRight,
+                                children: <Widget>[
+                                  Column(
+                                    children: <Widget>[
+                                      SizedBox(
+                                        height: 200,
+                                        width: double.infinity,
+                                        child: Image.network(product.image, fit: BoxFit.cover),
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: <Widget>[
+                                            Text(
+                                              product.title,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 18,
+                                              ),
+                                            ),
+                                            Text(
+                                              product.categoryTitle,
+                                              style: const TextStyle(
+                                                color: Colors.grey,
+                                              ),
+                                            ),
+                                            Text(
+                                              '\$${product.price}',
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.black,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: IconButton(
+                                      icon: Icon(
+                                        isInWishlist ? Icons.favorite : Icons.favorite_border,
+                                        color: isInWishlist ? Colors.red : null,
+                                      ),
+                                      onPressed: () {
+                                        if (isInWishlist) {
+                                          wishlistProvider.remove(product.id);
+                                        } else {
+                                          wishlistProvider.add(product.id);
+                                        }
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }

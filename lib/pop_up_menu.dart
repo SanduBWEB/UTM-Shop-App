@@ -8,24 +8,21 @@ class PopUpMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Align(
-      alignment: Alignment.centerLeft, // Расположите диалоговое окно слева
+      alignment: Alignment.centerLeft,
       child: Container(
-        height: double.infinity, // Заполните всю высоту экрана
-        width: MediaQuery.of(context).size.width * 0.7, // Ширина 70% экрана
-        color: Colors.white, // Цвет фона
+        height: double.infinity,
+        width: MediaQuery.of(context).size.width * 0.7,
+        color: Colors.white,
         child: Stack(
           children: [
-            // Ваши пункты меню
             Column(
               children: [
-                // Пространство под кнопку "Закрыть"
-                const SizedBox(height: 50),  // Задайте нужную высоту в зависимости от размера вашей кнопки
+                const SizedBox(height: 50),
                 ListTile(
                   leading: const Icon(Icons.person_2_outlined),
                   title: const Text('Personal Info'),
                   onTap: () {
                     Navigator.pop(context);
-                    // Обработка выбора "Пункт 1"
                   },
                 ),
                 ListTile(
@@ -33,42 +30,38 @@ class PopUpMenu extends StatelessWidget {
                   title: const Text('Пункт 2'),
                   onTap: () {
                     Navigator.pop(context);
-                    // Обработка выбора "Пункт 2"
                   },
                 ),
-                // Можете добавить больше элементов в ваше меню
               ],
             ),
-            // Кнопка "Закрыть"
             Positioned(
-              bottom: 0, // Позиционирование снизу
-              left: 0,  // Позиционирование слева
-              right: 0, // Позиционирование справа (для обеспечения полной ширины)
+              bottom: 0,
+              left: 0,
+              right: 0,
               child: RawMaterialButton(
                 onPressed: () {
-                  // Этот метод закроет ваше приложение
                   SystemNavigator.pop();
                 },
                 padding: const EdgeInsets.all(10.0),
                 elevation: 2.0,
-                fillColor: Colors.red, // Красный фон кнопки
+                fillColor: Colors.red,
                 shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.zero, // Без закругления углов
+                  borderRadius: BorderRadius.zero,
                 ),
-                child: const Row( // Row для размещения иконки и текста рядом
-                  mainAxisSize: MainAxisSize.min, // Занимать минимально возможное пространство
-                  mainAxisAlignment: MainAxisAlignment.center, // Центрировать содержимое
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
                       Icons.close,
                       size: 20.0,
-                      color: Colors.white, // Белый цвет иконки
+                      color: Colors.white,
                     ),
-                    SizedBox(width: 10), // Отступ между иконкой и текстом
+                    SizedBox(width: 10),
                     Text(
                       "Close App!",
                       style: TextStyle(
-                        color: Colors.white, // Белый цвет текста
+                        color: Colors.white,
                       ),
                     ),
                   ],

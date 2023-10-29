@@ -28,6 +28,7 @@ dependencies:
   font_awesome_flutter: ^9.1.0
   flutter_sliding_drawer: ^2.0.0
   http: ^1.1.0
+  provider: ^6.0.1
 
 dev_dependencies:
   flutter_test:
