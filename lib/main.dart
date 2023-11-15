@@ -6,6 +6,8 @@ import 'package:utm_app/products.dart';
 import 'package:utm_app/wish_list.dart';
 import 'package:provider/provider.dart';
 import 'package:utm_app/product.dart';
+import 'cart.dart';
+import 'cart_view.dart';
 
 void main() {
   runApp(
@@ -34,6 +36,7 @@ class MyApp extends StatelessWidget {
 class MyHomePage extends StatefulWidget {
   const MyHomePage({Key? key, required this.title}) : super(key: key);
   final String title;
+
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -73,6 +76,10 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  int cartCount = 0;
+  final Cart cart = Cart();
+
+
   @override
   Widget build(BuildContext context) {
     var wishlistProvider = Provider.of<WishlistProvider>(context);
@@ -103,16 +110,40 @@ class _MyHomePageState extends State<MyHomePage> {
                       size: 30.0,
                     ),
                   ),
-                  RawMaterialButton(
-                    onPressed: () {
-                    },
-                    elevation: 2.0,
-                    fillColor: Colors.grey[200],
-                    padding: const EdgeInsets.all(15.0),
-                    shape: const CircleBorder(),
-                    child: const Icon(
-                      Icons.shopping_cart,
-                      size: 30.0,
+                  Positioned(
+                    top: 20.0,  // отступ сверху, можно регулировать
+                    right: 10.0,  // отступ справа, можно регулировать
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        CircleAvatar(
+                          radius: 25,
+                          backgroundColor: Colors.grey[200], // серый фон
+                          child: IconButton(
+                            icon: const Icon(Icons.shopping_cart, color: Colors.grey),
+                            onPressed: () {
+                              Navigator.of(context).push(MaterialPageRoute(
+                                builder: (context) => const CartPage(),
+                              ));
+                            },  // вызовите метод addToCart при нажатии
+                          ),
+                        ),
+                        if (cart.itemCount > 0)  // Если количество товаров больше нуля
+                          Positioned(
+                            bottom: 0, right: 0,
+                            child: CircleAvatar(
+                              radius: 10.0,
+                              backgroundColor: Colors.red,
+                              child: Text(
+                                '${cart.itemCount}',
+                                style: const TextStyle(
+                                  fontSize: 12.0,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ],
@@ -374,7 +405,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                   Column(
                                     children: <Widget>[
                                       SizedBox(
-                                        height: 200,
+                                        height: 180,
                                         width: double.infinity,
                                         child: Image.network(product.image, fit: BoxFit.cover),
                                       ),
